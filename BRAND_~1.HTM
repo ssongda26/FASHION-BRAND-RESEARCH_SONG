@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>SINOON 경쟁 브랜드 가격 대시보드</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/gridjs.umd.js" integrity="sha384-/XXDzxe4FsGiAe50i/u9pY/Vy/uX654MHB1xoc1BJNnH1WXHhqHga9g3q5tF4gj7" crossorigin="anonymous"></script>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Pretendard", "Malgun Gothic", Arial, sans-serif;
+    background: #f7f7f5;
+    color: #1f2328;
+    padding: 24px 32px 60px;
+  }
+  header { margin-bottom: 20px; }
+  h1 { font-size: 22px; margin: 0 0 4px; font-weight: 700; }
+  .subtitle { color: #6b6b66; font-size: 13px; }
+  .meta-row { display:flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .brand-tag {
+    font-size: 12px; padding: 4px 10px; border-radius: 999px;
+    background: #eee; color:#444; border:1px solid #ddd;
+  }
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+    margin: 20px 0 28px;
+  }
+  .card {
+    background: #fff; border: 1px solid #e6e6e2; border-radius: 10px;
+    padding: 16px 18px;
+  }
+  .card .label { font-size: 12px; color: #8a8a84; margin-bottom: 6px; }
+  .card .value { font-size: 20px; font-weight: 700; }
+  .card .sub { font-size: 12px; color: #999; margin-top: 4px; }
+  .section {
+    background: #fff; border: 1px solid #e6e6e2; border-radius: 12px;
+    padding: 20px; margin-bottom: 22px;
+  }
+  .section h2 { font-size: 15px; margin: 0 0 14px; font-weight: 700; }
+  .controls { display:flex; gap:8px; margin-bottom: 14px; flex-wrap: wrap; align-items:center; }
+  .btn {
+    font-size: 12.5px; padding: 6px 14px; border-radius: 8px; border: 1px solid #d8d8d3;
+    background: #fafafa; cursor: pointer; color:#333;
+  }
+  .btn.active { background: #1f2328; color:#fff; border-color:#1f2328; }
+  .chart-wrap { position: relative; height: 340px; }
+  #gridTable { font-size: 13px; }
+  .gridjs-wrapper { border: 1px solid #e6e6e2; border-radius: 8px; overflow: hidden; box-shadow:none !important; }
+  table.gridjs-table { width: 100%; border-collapse: collapse; }
+  th.gridjs-th { font-size: 12.5px; background:#fafaf8; text-align:left; padding:9px 10px; border-bottom:1px solid #e6e6e2; color:#444; }
+  td.gridjs-td { padding: 8px 10px; border-bottom: 1px solid #f0f0ee; font-size: 13px; }
+  .gridjs-tr:hover td.gridjs-td { background: #fafaf8; }
+  .gridjs-search { margin-bottom: 10px; }
+  input.gridjs-input { padding: 6px 10px; border:1px solid #d8d8d3; border-radius: 8px; font-size:12.5px; }
+  .gridjs-pagination { margin-top: 12px; font-size:12.5px; display:flex; align-items:center; gap:6px; justify-content:space-between; }
+  .gridjs-pagination .gridjs-pages button {
+    border:1px solid #d8d8d3; background:#fff; padding:4px 10px; border-radius:6px; cursor:pointer; margin: 0 2px;
+  }
+  .gridjs-pagination .gridjs-pages button:disabled { color:#bbb; cursor:default; }
+  .gridjs-pagination .gridjs-pages button.gridjs-currentPage { background:#1f2328; color:#fff; border-color:#1f2328; }
+  .gridjs-summary { color:#999; }
+  .footer-note {
+    font-size: 12px; color: #999; margin-top: 30px; line-height: 1.6;
+  }
+  .insight-list { margin:0; padding-left: 18px; font-size: 13px; line-height: 1.8; color:#333; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>SINOON 경쟁 브랜드 복종별 가격 대시보드</h1>
+  <div class="subtitle">기획MD 시즌 전략 참고용 &middot; 조사 기준일 2026-07-07 &middot; 단위: KRW (판매가/정가 기준)</div>
+  <div class="meta-row" id="brandTags"></div>
+</header>
+
+<div class="cards" id="summaryCards"></div>
+
+<div class="section">
+  <h2>복종별 평균가 비교</h2>
+  <div class="controls" id="chartToggle"></div>
+  <div class="chart-wrap"><canvas id="priceChart"></canvas></div>
+</div>
+
+<div class="section">
+  <h2>상세 데이터 (정렬/필터 가능)</h2>
+  <div class="controls" id="brandFilter"></div>
+  <div id="gridTable"></div>
+</div>
+
+<div class="section">
+  <h2>주요 인사이트</h2>
+  <ul class="insight-list" id="insightList"></ul>
+</div>
+
+<div class="footer-note">
+  이 대시보드는 브랜드 사이트 링크를 새로 받을 때마다 DATA 배열에 항목을 추가하는 방식으로 계속 업데이트됩니다.<br>
+  현재 반영된 브랜드: 미세키서울(misekiseoul.kr), 더반넷(the-barnnet.com), 레이브스튜디오(raivestudio.com)
+</div>
+
+<script>
+// ---------------------------------------------------------------------
+// DATA: 새 브랜드 조사 시 이 배열에 항목을 append 하는 방식으로 업데이트
+// ---------------------------------------------------------------------
+const DATA = [
+ {category:'OUTER', brand:'미세키서울(W)', count:19, min:128000, max:298000, avg:247000, typical:'128,000~298,000', note:'남성 라인 평균 222,000원'},
+ {category:'OUTER', brand:'더반넷', count:35, min:128000, max:298000, avg:157000, typical:'128,000~168,000 (66%)', note:'128,000원 미만 상품 없음'},
+ {category:'OUTER', brand:'레이브스튜디오', count:34, min:108000, max:258000, avg:217000, typical:'218,000~238,000', note:'스웨이드/가죽 자켓이 상단가 견인'},
+
+ {category:'KNIT', brand:'미세키서울(W)', count:6, min:78000, max:98000, avg:88000, typical:'78,000~98,000', note:'남성 라인 평균 108,000원'},
+ {category:'KNIT', brand:'더반넷', count:50, min:58000, max:182000, avg:101000, typical:'86,000~118,000', note:'SKU 수 2위(50개)'},
+ {category:'KNIT', brand:'레이브스튜디오', count:46, min:68000, max:158000, avg:120000, typical:'118,000~138,000', note:''},
+
+ {category:'BLOUSE/SHIRT', brand:'미세키서울(W)', count:8, min:68000, max:113000, avg:99000, typical:'68,000~113,000', note:''},
+ {category:'BLOUSE/SHIRT', brand:'더반넷', count:160, min:34000, max:156000, avg:87000, typical:'65,000/108,000/128,000 다발', note:'Top(블라우스+셔츠+티) 통합, 최대 볼륨'},
+ {category:'BLOUSE/SHIRT', brand:'레이브스튜디오', count:37, min:73000, max:148000, avg:119000, typical:'128,000~138,000', note:''},
+
+ {category:'T-SHIRT', brand:'미세키서울(W)', count:46, min:38000, max:98000, avg:68000, typical:'38,000~68,000', note:'물량 최다, 트래픽 유입용'},
+ {category:'T-SHIRT', brand:'레이브스튜디오', count:117, min:48000, max:118000, avg:70000, typical:'53,000~68,000', note:'최대 볼륨, 상시 15~30% 할인'},
+
+ {category:'DRESS', brand:'미세키서울(W)', count:10, min:108000, max:198000, avg:148000, typical:'108,000~198,000', note:''},
+ {category:'DRESS', brand:'더반넷', count:6, min:118000, max:238000, avg:153000, typical:'118,000~142,000', note:'비주력 소량 카테고리'},
+ {category:'DRESS', brand:'레이브스튜디오', count:10, min:88000, max:178000, avg:149000, typical:'148,000~178,000', note:''},
+
+ {category:'SKIRT', brand:'미세키서울(W)', count:23, min:98000, max:168000, avg:135000, typical:'98,000~168,000', note:''},
+ {category:'SKIRT', brand:'레이브스튜디오', count:29, min:73000, max:148000, avg:129000, typical:'108,000~138,000', note:'물량 중심 구색'},
+
+ {category:'PANTS', brand:'미세키서울(W)', count:13, min:168000, max:228000, avg:186000, typical:'168,000~228,000', note:'남성 라인 평균 144,000원(33개)'},
+ {category:'PANTS', brand:'더반넷', count:90, min:59000, max:198000, avg:115000, typical:'108,000~128,000', note:'Bottom=스커트+팬츠 통합(약 90~106개)'},
+ {category:'PANTS', brand:'레이브스튜디오', count:87, min:68000, max:168000, avg:134000, typical:'128,000~138,000', note:''},
+
+ {category:'BAG', brand:'미세키서울(W)', count:11, min:28000, max:218000, avg:129000, typical:'28,000~218,000', note:'남성 라인 평균 144,000원(11개)'},
+ {category:'BAG', brand:'더반넷', count:33, min:45000, max:235000, avg:115000, typical:'65,000~128,000', note:'저가 토트백+고가 구조백 이원화'},
+ {category:'BAG', brand:'레이브스튜디오', count:70, min:73000, max:268000, avg:161000, typical:'73,000~128,000', note:'최고가·최고편차 카테고리'},
+
+ {category:'SHOES', brand:'미세키서울(W)', count:2, min:158000, max:158000, avg:158000, typical:'158,000', note:'핵심 카테고리 아님'},
+ {category:'SHOES', brand:'레이브스튜디오', count:17, min:88000, max:209000, avg:137000, typical:'88,000~209,000', note:''},
+
+ {category:'ACC/SMALL GOODS', brand:'미세키서울(W)', count:43, min:18000, max:98000, avg:44000, typical:'18,000~44,000', note:'남성 라인 평균 61,000원(26개)'},
+ {category:'ACC/SMALL GOODS', brand:'더반넷', count:75, min:9000, max:375000, avg:84000, typical:'45,000 (18개 SKU 집중)', note:'저가~고가 혼재(이원화)'},
+ {category:'ACC/SMALL GOODS', brand:'레이브스튜디오', count:43, min:13000, max:98000, avg:52000, typical:'13,000~98,000', note:'저관여 충동구매 라인'},
+];
+
+const INSIGHTS = [
+ 'OUTER: 세 브랜드 모두 12~30만원대. 미세키서울 평균가(247,000원)가 가장 높고, 더반넷은 128,000원 미만 상품이 없는 프리미엄 라인.',
+ 'T-SHIRT/TOP: 세 브랜드 공통으로 물량 최다 카테고리(레이브 117개, 더반넷 Top 160개, 미세키서울 46개) — 트래픽 유입용 저가 라인. 레이브는 상시 15~30% 할인 운영.',
+ 'DRESS: 세 브랜드 평균가가 148,000~153,000원으로 거의 동일 — 가격 경쟁이 가장 치열한 구간.',
+ 'BAG: 레이브(평균 161,000원)가 가장 고가·고편차. 더반넷·미세키서울은 저가/고가 이원화 구조.',
+ '세 브랜드 모두 38k/68k/98k/128k 식의 라운드 넘버 가격 티어 사용 — 명확한 price ladder 설계.',
+ '더반넷은 스커트/팬츠(Bottom), 블라우스/셔츠/티(Top)가 서브 구분 없이 통합 운영되어 일부 항목은 개별 분리가 불가.',
+];
+
+const BRAND_COLORS = {
+  '미세키서울(W)': '#2563eb',
+  '더반넷': '#dc2626',
+  '레이브스튜디오': '#059669',
+};
+function colorFor(brand){
+  if (BRAND_COLORS[brand]) return BRAND_COLORS[brand];
+  const palette = ['#7c3aed','#d97706','#0891b2','#be185d','#4b5563'];
+  let h=0; for(const c of brand) h = (h*31 + c.charCodeAt(0)) % palette.length;
+  return palette[h];
+}
+function fmt(n){ return n==null ? '-' : '₩' + n.toLocaleString('ko-KR'); }
+
+// brand tags
+const brands = [...new Set(DATA.map(d=>d.brand))];
+document.getElementById('brandTags').innerHTML = brands.map(b=>`<span class="brand-tag" style="border-color:${colorFor(b)};color:${colorFor(b)}">${b}</span>`).join('');
+
+// summary cards
+const cardsEl = document.getElementById('summaryCards');
+const totalSKU = DATA.reduce((s,d)=>s+(d.count||0),0);
+const overallMin = Math.min(...DATA.map(d=>d.min).filter(Boolean));
+const overallMax = Math.max(...DATA.map(d=>d.max).filter(Boolean));
+const overallAvg = Math.round(DATA.reduce((s,d)=>s+(d.avg||0),0)/DATA.length);
+cardsEl.innerHTML = `
+  <div class="card"><div class="label">조사 브랜드 수</div><div class="value">${brands.length}개</div><div class="sub">${brands.join(' · ')}</div></div>
+  <div class="card"><div class="label">조사 SKU 합계(근사)</div><div class="value">${totalSKU.toLocaleString()}개</div></div>
+  <div class="card"><div class="label">전체 가격 범위</div><div class="value">${fmt(overallMin)} ~ ${fmt(overallMax)}</div></div>
+  <div class="card"><div class="label">전체 평균가(단순평균)</div><div class="value">${fmt(overallAvg)}</div></div>
+`;
+
+// chart
+const categories = [...new Set(DATA.map(d=>d.category))];
+let metric = 'avg';
+const ctx = document.getElementById('priceChart').getContext('2d');
+function buildDatasets(m){
+  return brands.map(b => ({
+    label: b,
+    backgroundColor: colorFor(b),
+    data: categories.map(c => {
+      const row = DATA.find(d=>d.category===c && d.brand===b);
+      return row ? row[m] : null;
+    })
+  }));
+}
+let chart = new Chart(ctx, {
+  type: 'bar',
+  data: { labels: categories, datasets: buildDatasets(metric) },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { position:'bottom', labels:{ font:{size:11} } },
+      tooltip: { callbacks: { label: (c)=> `${c.dataset.label}: ${fmt(c.raw)}` } }
+    },
+    scales: {
+      y: { ticks: { callback: v => (v/1000)+'k' }, grid:{color:'#eee'} },
+      x: { grid:{display:false} }
+    }
+  }
+});
+const metrics = [['avg','평균가'],['min','최저가'],['max','최고가']];
+document.getElementById('chartToggle').innerHTML = metrics.map(([k,l],i)=>
+  `<button class="btn ${k===metric?'active':''}" data-metric="${k}">${l}</button>`).join('');
+document.querySelectorAll('#chartToggle .btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    metric = btn.dataset.metric;
+    document.querySelectorAll('#chartToggle .btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    chart.data.datasets = buildDatasets(metric);
+    chart.update();
+  });
+});
+
+// grid table
+let currentBrand = '전체';
+function renderGrid(){
+  document.getElementById('gridTable').innerHTML = '';
+  const rows = DATA.filter(d => currentBrand==='전체' || d.brand===currentBrand)
+    .map(d => [d.category, d.brand, d.count ?? '-', fmt(d.min), fmt(d.max), fmt(d.avg), d.typical, d.note]);
+  new gridjs.Grid({
+    columns: ['복종','브랜드','상품수','최저가','최고가','평균가','대표 가격대','비고'],
+    data: rows,
+    sort: true,
+    search: true,
+    pagination: { limit: 12 },
+    style: { table: { fontSize:'13px' } }
+  }).render(document.getElementById('gridTable'));
+}
+document.getElementById('brandFilter').innerHTML = ['전체', ...brands].map(b =>
+  `<button class="btn ${b===currentBrand?'active':''}" data-brand="${b}">${b}</button>`).join('');
+document.querySelectorAll('#brandFilter .btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    currentBrand = btn.dataset.brand;
+    document.querySelectorAll('#brandFilter .btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    renderGrid();
+  });
+});
+renderGrid();
+
+// insights
+document.getElementById('insightList').innerHTML = INSIGHTS.map(i=>`<li>${i}</li>`).join('');
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>FASHION BRAND RESEARCH 대시보드</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/gridjs.umd.js" integrity="sha384-/XXDzxe4FsGiAe50i/u9pY/Vy/uX654MHB1xoc1BJNnH1WXHhqHga9g3q5tF4gj7" crossorigin="anonymous"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/theme/mermaid.min.css" integrity="sha384-jZvDSsmGB9oGGT/4l9bHXGoAv1OxvG/cFmSo0dZaSqmBgvQTKDBFAMftlXTmMbNW" crossorigin="anonymous">
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Pretendard", "Malgun Gothic", Arial, sans-serif;
+    background: #f7f7f5;
+    color: #1f2328;
+    padding: 24px 32px 60px;
+  }
+  header { margin-bottom: 20px; }
+  h1 { font-size: 24px; margin: 0 0 6px; font-weight: 700; letter-spacing: -0.01em; }
+  .subtitle { color: #6b6b66; font-size: 13px; }
+  .meta-row { display:flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .brand-tag {
+    font-size: 12px; padding: 4px 10px; border-radius: 999px;
+    background: #eee; color:#444; border:1px solid #ddd;
+  }
+  .cards {
+    display: flex;
+    border-top: 1px solid #e6e6e2;
+    border-bottom: 1px solid #e6e6e2;
+    margin: 20px 0 24px;
+  }
+  .card {
+    flex: 1;
+    padding: 16px 18px;
+    border-right: 1px solid #e6e6e2;
+  }
+  .card:last-child { border-right: none; }
+  .card .label { font-size: 11.5px; letter-spacing: 0.03em; text-transform: uppercase; color: #6b6b66; margin-bottom: 9px; }
+  .card .value { font-size: 24px; font-weight: 700; }
+  .card .sub { font-size: 11.5px; color: #999; margin-top: 7px; }
+  .section {
+    background: #fff; border: 1px solid #e6e6e2; border-radius: 12px;
+    padding: 20px; margin-bottom: 22px;
+  }
+  .section h2 { font-size: 15px; margin: 0 0 4px; font-weight: 700; }
+  .section .section-sub { font-size: 12px; color: #999; margin: 0 0 14px; }
+  .dashboard-row {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 22px;
+    align-items: stretch;
+  }
+  .dashboard-row .section { margin-bottom: 0; min-width: 0; }
+  @media (max-width: 980px) {
+    .dashboard-row { grid-template-columns: 1fr; }
+  }
+  .accordion-section { padding: 16px 20px; }
+  .accordion-header {
+    display: flex; align-items: center; justify-content: space-between;
+    cursor: pointer;
+  }
+  .accordion-header h2 { margin: 0; font-size: 13px; font-weight: 400; color: #444; }
+  .accordion-chevron { font-size: 11px; color: #999; }
+  .accordion-body { display: none; margin-top: 14px; }
+  .controls { display:flex; gap:8px; margin-bottom: 14px; flex-wrap: wrap; align-items:center; }
+  .btn {
+    font-size: 12.5px; padding: 6px 14px; border-radius: 8px; border: 1px solid #d8d8d3;
+    background: #fafafa; cursor: pointer; color:#333;
+  }
+  .btn.active { background: #1f2328; color:#fff; border-color:#1f2328; }
+  .chart-wrap { position: relative; height: 340px; min-width: 0; overflow: hidden; }
+  #gridTable { font-size: 13px; }
+  .gridjs-wrapper { border: 1px solid #e6e6e2; border-radius: 8px; overflow: hidden; box-shadow:none !important; }
+  table.gridjs-table { width: 100%; border-collapse: collapse; }
+  th.gridjs-th { font-size: 12.5px; background:#fafaf8; text-align:left; padding:9px 10px; border-bottom:1px solid #e6e6e2; color:#444; }
+  td.gridjs-td { padding: 8px 10px; border-bottom: 1px solid #f0f0ee; font-size: 13px; }
+  .gridjs-tr:hover td.gridjs-td { background: #fafaf8; }
+  .gridjs-search { margin-bottom: 10px; }
+  input.gridjs-input { padding: 6px 10px; border:1px solid #d8d8d3; border-radius: 8px; font-size:12.5px; }
+  .gridjs-pagination { margin-top: 12px; font-size:12.5px; display:flex; align-items:center; gap:6px; justify-content:space-between; }
+  .gridjs-pagination .gridjs-pages button {
+    border:1px solid #d8d8d3; background:#fff; padding:4px 10px; border-radius:6px; cursor:pointer; margin: 0 2px;
+  }
+  .gridjs-pagination .gridjs-pages button:disabled { color:#bbb; cursor:default; }
+  .gridjs-pagination .gridjs-pages button.gridjs-currentPage { background:#1f2328; color:#fff; border-color:#1f2328; }
+  .gridjs-summary { color:#999; }
+  .footer-note {
+    font-size: 12px; color: #999; margin-top: 30px; line-height: 1.6;
+  }
+  .insight-list { margin:0; padding-left: 18px; font-size: 13px; line-height: 1.8; color:#333; }
+
+  /* 새 브랜드 추가 폼 (목업) */
+  .addbrand-row {
+    display: flex; gap: 10px; flex-wrap: wrap; align-items: stretch;
+  }
+  .addbrand-row input[type=text] {
+    flex: 1 1 320px;
+    min-width: 240px;
+    padding: 9px 12px;
+    border: 1px solid #d8d8d3;
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: inherit;
+  }
+  .addbrand-row input[type=text]:focus { outline: 2px solid #1f2328; outline-offset: 1px; }
+  .cat-picker {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    flex: 1 1 360px;
+    align-items: center;
+  }
+  .cat-chip {
+    font-size: 12px; padding: 6px 12px; border-radius: 999px;
+    border: 1px solid #d8d8d3; background: #fafafa; color: #555;
+    cursor: pointer; user-select: none;
+  }
+  .cat-chip.selected { background: #1f2328; color: #fff; border-color: #1f2328; }
+  .addbrand-submit {
+    flex: 0 0 auto;
+    padding: 9px 18px;
+    border-radius: 8px;
+    border: 1px solid #1f2328;
+    background: #1f2328;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .addbrand-submit:hover { opacity: 0.9; }
+  .pending-table {
+    margin-top: 16px;
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+  }
+  .pending-table th, .pending-table td {
+    text-align: left; padding: 8px 10px;
+    border-bottom: 1px solid #f0f0ee;
+  }
+  .pending-table th { color:#888; font-weight:600; font-size:11.5px; }
+  .pending-status {
+    display:inline-block; padding:2px 9px; border-radius:999px;
+    background:#fff7e6; color:#b45309; font-size:11px; font-weight:600;
+  }
+  .pending-remove {
+    border:none; background:none; color:#bbb; cursor:pointer; font-size:12px;
+  }
+  .pending-remove:hover { color:#dc2626; }
+  .pending-empty { font-size:12.5px; color:#aaa; padding: 10px 0; }
+
+  /* positioning map */
+  .posmap-wrap {
+    position: relative;
+    width: 100%;
+    height: 560px;
+    margin-top: 6px;
+  }
+  .posmap-axis-label {
+    position: absolute;
+    font-size: 12px;
+    font-weight: 700;
+    color: #1f2328;
+    letter-spacing: 0.3px;
+  }
+  .posmap-center-label {
+    position: absolute;
+    left: 50%; top: 50%;
+    transform: translate(14px, -22px);
+    font-size: 12px;
+    font-weight: 700;
+    color: #444;
+  }
+  .posmap-line {
+    position: absolute;
+    background: #bbb;
+  }
+  .posmap-arrow {
+    position: absolute;
+    width: 0; height: 0;
+    border-style: solid;
+  }
+  .posmap-brand {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+    padding: 2px 6px;
+    border-radius: 5px;
+    cursor: default;
+  }
+  .posmap-note {
+    font-size: 11.5px; color:#999; margin-top: 10px;
+  }
+
+  /* 브랜드별 상세 보기 (사이드바 + 검색) */
+  .brandview {
+    display: flex;
+    border: 1px solid #e6e6e2;
+    border-radius: 10px;
+    overflow: hidden;
+    min-height: 420px;
+  }
+  .brandview-side {
+    width: 170px;
+    flex: 0 0 170px;
+    border-right: 1px solid #e6e6e2;
+    display: flex;
+    flex-direction: column;
+    background: #fafaf8;
+  }
+  .brandview-search {
+    padding: 10px;
+    border-bottom: 1px solid #e6e6e2;
+  }
+  .brandview-search input {
+    width: 100%;
+    padding: 7px 10px;
+    border: 1px solid #d8d8d3;
+    border-radius: 7px;
+    font-size: 12.5px;
+    font-family: inherit;
+  }
+  .brandview-list {
+    overflow-y: auto;
+    flex: 1;
+    max-height: 500px;
+  }
+  .brandview-item {
+    padding: 8px 12px;
+    font-size: 12.5px;
+    color: #555;
+    cursor: pointer;
+    border-left: 2px solid transparent;
+  }
+  .brandview-item:hover { background: #f0f0ed; }
+  .brandview-item.active {
+    background: #E6F1FB; color:#185FA5; font-weight: 700;
+    border-left: 2px solid #185FA5;
+  }
+  .brandview-item.all-item {
+    font-weight: 700; border-bottom: 1px solid #e6e6e2; margin-bottom: 2px;
+  }
+  .brandview-item.no-data { color: #BA7517; }
+  .brandview-item.no-data.active { background: #FAEEDA; color:#854F0B; border-left-color:#854F0B; }
+  .brandview-empty { padding: 10px 12px; font-size: 12px; color: #aaa; }
+  .brandview-main {
+    flex: 1;
+    padding: 18px 20px;
+    background: #fff;
+    min-width: 0;
+  }
+  .brandview-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .brandview-cards .card { padding: 12px 14px; }
+  .brandview-cards .card .value { font-size: 17px; }
+  .brand-table-wrap { overflow-x: auto; }
+  .brand-table {
+    width: 100%; border-collapse: collapse; font-size: 12.5px;
+  }
+  .brand-table th, .brand-table td {
+    text-align: left; padding: 8px 10px; border-bottom: 1px solid #f0f0ee;
+  }
+  .brand-table th { color:#888; font-size: 11.5px; font-weight: 600; background:#fafaf8; }
+  .detailtabs { display:flex; gap:4px; border-bottom:1px solid #e6e6e2; margin-bottom:16px; }
+  .detailtab { padding:8px 14px; font-size:13px; color:#999; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; }
+  .detailtab:hover { color:#555; }
+  .detailtab.active { color:#1f2328; font-weight:700; border-bottom-color:#185FA5; }
+  .sitelink-card {
+    display:flex; align-items:center; justify-content:space-between;
+    background:#fafaf8; border-radius:10px; padding:16px 18px;
+  }
+  .sitelink-btn {
+    display:inline-flex; align-items:center; gap:6px; padding:8px 16px;
+    border:1px solid #d8d8d3; border-radius:8px; font-size:13px; color:#1f2328;
+    text-decoration:none; background:#fff; white-space:nowrap;
+  }
+  .sitelink-btn:hover { background:#f0f0ed; }
+  .sitelink-list { border:1px solid #e6e6e2; border-radius:10px; overflow:hidden; }
+  .sitelink-row { display:flex; align-items:center; justify-content:space-between; padding:10px 16px; border-bottom:1px solid #f0f0ee; }
+  .sitelink-row:last-child { border-bottom:none; }
+  .sitelink-go { font-size:12.5px; color:#185FA5; text-decoration:none; white-space:nowrap; }
+  .sitelink-go:hover { text-decoration:underline; }
+  .sitelink-none { font-size:12px; color:#bbb; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>FASHION BRAND RESEARCH 대시보드</h1>
+  <div class="subtitle">기획MD 시즌 전략 참고용 &middot; 최초 조사 2026-07-07 / 최근 업데이트 2026-09-15 &middot; 단위: KRW (판매가/정가 기준)</div>
+  <div id="fbPublishInfo" style="font-size:11.5px; color:#999; margin-top:6px;"></div>
+</header>
+
+<div class="cards" id="summaryCards"></div>
+
+<div class="section accordion-section">
+  <div class="accordion-header" id="addBrandToggle">
+    <h2>+ 새 브랜드 조사 요청 <span style="font-weight:400;color:#aaa;font-size:12px;">(목업 — 아직 자동조사로 연결되지 않음)</span></h2>
+    <span class="accordion-chevron" id="addBrandChevron">▾</span>
+  </div>
+  <div class="accordion-body" id="addBrandBody">
+    <div class="section-sub" style="margin-top:12px;">링크를 입력하고 조사할 카테고리를 선택한 뒤 "조사 요청 추가"를 누르면 아래 대기 목록에 기록됩니다. 실제 조사는 이 목록과 함께 채팅창에 같은 링크를 보내주셔야 진행되며, 조사가 끝나면 이 대시보드(가격 데이터 + 포지셔닝 맵)에 자동으로 반영됩니다.</div>
+    <div class="addbrand-row">
+      <input type="text" id="newBrandUrl" placeholder="https://brand-site.com/product/list.html?cate_no=..." />
+      <div class="cat-picker" id="catPicker"></div>
+      <button class="addbrand-submit" id="addBrandBtn">+ 조사 요청 추가 (채팅 메시지 복사)</button>
+    </div>
+    <div id="copyToast" style="display:none; margin-top:10px; font-size:12.5px; color:#185FA5; background:#E6F1FB; border-radius:8px; padding:8px 12px;"></div>
+    <div id="pendingWrap"></div>
+  </div>
+</div>
+
+<div class="section accordion-section">
+  <div class="accordion-header" id="publishToggle">
+    <h2>☁ 데이터 게시 (관리자용)</h2>
+    <span class="accordion-chevron" id="publishChevron">▾</span>
+  </div>
+  <div class="accordion-body" id="publishBody">
+    <div class="section-sub" style="margin-top:12px;">새로 조사된 데이터 JSON을 아래에 붙여넣고 "게시"를 누르면, 이 링크를 가진 모든 사람에게 새로고침만으로 반영됩니다.</div>
+    <textarea id="publishJsonInput" placeholder='{"DATA": [...], "BRAND_STYLE": {...}, "BRAND_EN": {...}, "BRAND_URL": {...}, "INSIGHTS": [...]}' style="width:100%; min-height:140px; padding:10px 12px; border:1px solid #d8d8d3; border-radius:8px; font-size:12.5px; font-family: ui-monospace, monospace; box-sizing:border-box;"></textarea>
+    <div style="margin-top:10px; display:flex; align-items:center; gap:12px;">
+      <button class="addbrand-submit" id="publishBtn">게시</button>
+      <span id="publishStatus" style="font-size:12.5px;"></span>
+    </div>
+  </div>
+</div>
+
+<div class="dashboard-row">
+  <div class="section">
+    <h2>브랜드별 상세 보기</h2>
+    <div class="section-sub">왼쪽에서 브랜드를 검색·선택하면 해당 브랜드의 복종별 가격 데이터가 오른쪽에 표시됩니다. "전체 보기"를 선택하면 모든 브랜드를 한 표에서 정렬·필터할 수 있습니다.</div>
+    <div class="brandview">
+      <div class="brandview-side">
+        <div class="brandview-search"><input type="text" id="brandSearch" placeholder="브랜드 검색"></div>
+        <div class="brandview-list" id="brandList"></div>
+      </div>
+      <div class="brandview-main" id="brandMain"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>복종별 평균가 비교</h2>
+    <div class="section-sub">카테고리를 선택하면 해당 복종의 브랜드별 최저~최고가 범위를 평균가 높은 순으로 보여줍니다. 선택한 브랜드는 파란색, 나머지는 회색으로 표시됩니다.</div>
+    <div class="controls" id="chartToggle"></div>
+    <div class="chart-wrap"><canvas id="priceChart"></canvas></div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>브랜드 포지셔닝 맵</h2>
+  <div class="section-sub">가로축: LOVELY(여성적·로맨틱) ↔ HIP(스트릿·엣지) &nbsp;|&nbsp; 세로축: 평균 판매가 기준 PRICE LOW ↔ HIGH &nbsp;|&nbsp; 위 "브랜드별 상세 보기"에서 고른 브랜드가 파란색으로 강조됩니다</div>
+  <div class="posmap-wrap" id="posMap"></div>
+  <div class="posmap-note">가로축(스타일) 점수는 브랜드 룩·상품명 기반 정성 평가이며, 세로축(가격)은 조사된 전 카테고리 평균가의 산술평균입니다. 가격 데이터가 없는 브랜드(길라아카이브·스컬프터페이지·카시코)는 표시에서 제외되며, 신규 브랜드는 기본값(중앙)으로 표시되므로 조사 후 스타일 점수를 보정해야 합니다.</div>
+</div>
+
+<div class="section">
+  <h2>주요 인사이트</h2>
+  <ul class="insight-list" id="insightList"></ul>
+</div>
+
+<div class="footer-note">
+  이 대시보드는 브랜드 사이트 링크를 새로 받을 때마다 DATA 배열(가격)과 BRAND_STYLE 배열(포지셔닝 점수)에 항목을 추가하는 방식으로 계속 업데이트됩니다.<br>
+  "전체" 복종으로 표시된 브랜드(길라아카이브, 스컬프터페이지, 카시코)는 사이트 접속 제한/JS 렌더링 문제로 가격 데이터를 수집하지 못해 재조사가 필요합니다.<br>
+  "TOP(통합)" / "BOTTOM(통합)"은 해당 브랜드가 니트·티셔츠·블라우스 또는 스커트·팬츠를 하나의 카테고리로 통합 운영해 세부 분리가 불가했던 경우입니다.
+</div>
+
+<script>
+// ---------------------------------------------------------------------
+// DATA: 새 브랜드 조사 시 이 배열에 항목을 append 하는 방식으로 업데이트
+// ---------------------------------------------------------------------
+let DATA = [
+ {category:'OUTER', brand:'미세키서울(W)', count:19, min:128000, max:298000, avg:247000, typical:'128,000~298,000', note:'남성 라인 평균 222,000원'},
+ {category:'OUTER', brand:'더반넷', count:35, min:128000, max:298000, avg:157000, typical:'128,000~168,000 (66%)', note:'128,000원 미만 상품 없음'},
+ {category:'OUTER', brand:'레이브스튜디오', count:34, min:108000, max:258000, avg:217000, typical:'218,000~238,000', note:'스웨이드/가죽 자켓이 상단가 견인'},
+
+ {category:'KNIT', brand:'미세키서울(W)', count:6, min:78000, max:98000, avg:88000, typical:'78,000~98,000', note:'남성 라인 평균 108,000원'},
+ {category:'KNIT', brand:'더반넷', count:50, min:58000, max:182000, avg:101000, typical:'86,000~118,000', note:'SKU 수 2위(50개)'},
+ {category:'KNIT', brand:'레이브스튜디오', count:46, min:68000, max:158000, avg:120000, typical:'118,000~138,000', note:''},
+
+ {category:'BLOUSE/SHIRT', brand:'미세키서울(W)', count:8, min:68000, max:113000, avg:99000, typical:'68,000~113,000', note:''},
+ {category:'BLOUSE/SHIRT', brand:'더반넷', count:160, min:34000, max:156000, avg:87000, typical:'65,000/108,000/128,000 다발', note:'Top(블라우스+셔츠+티) 통합, 최대 볼륨'},
+ {category:'BLOUSE/SHIRT', brand:'레이브스튜디오', count:37, min:73000, max:148000, avg:119000, typical:'128,000~138,000', note:''},
+
+ {category:'T-SHIRT', brand:'미세키서울(W)', count:46, min:38000, max:98000, avg:68000, typical:'38,000~68,000', note:'물량 최다, 트래픽 유입용'},
+ {category:'T-SHIRT', brand:'레이브스튜디오', count:117, min:48000, max:118000, avg:70000, typical:'53,000~68,000', note:'최대 볼륨, 상시 15~30% 할인'},
+
+ {category:'DRESS', brand:'미세키서울(W)', count:10, min:108000, max:198000, avg:148000, typical:'108,000~198,000', note:''},
+ {category:'DRESS', brand:'더반넷', count:6, min:118000, max:238000, avg:153000, typical:'118,000~142,000', note:'비주력 소량 카테고리'},
+ {category:'DRESS', brand:'레이브스튜디오', count:10, min:88000, max:178000, avg:149000, typical:'148,000~178,000', note:''},
+
+ {category:'SKIRT', brand:'미세키서울(W)', count:23, min:98000, max:168000, avg:135000, typical:'98,000~168,000', note:''},
+ {category:'SKIRT', brand:'레이브스튜디오', count:29, min:73000, max:148000, avg:129000, typical:'108,000~138,000', note:'물량 중심 구색'},
+
+ {category:'PANTS', brand:'미세키서울(W)', count:13, min:168000, max:228000, avg:186000, typical:'168,000~228,000', note:'남성 라인 평균 144,000원(33개)'},
+ {category:'PANTS', brand:'더반넷', count:90, min:59000, max:198000, avg:115000, typical:'108,000~128,000', note:'Bottom=스커트+팬츠 통합(약 90~106개)'},
+ {category:'PANTS', brand:'레이브스튜디오', count:87, min:68000, max:168000, avg:134000, typical:'128,000~138,000', note:''},
+
+ {category:'BAG', brand:'미세키서울(W)', count:11, min:28000, max:218000, avg:129000, typical:'28,000~218,000', note:'남성 라인 평균 144,000원(11개)'},
+ {category:'BAG', brand:'더반넷', count:33, min:45000, max:235000, avg:115000, typical:'65,000~128,000', note:'저가 토트백+고가 구조백 이원화'},
+ {category:'BAG', brand:'레이브스튜디오', count:70, min:73000, max:268000, avg:161000, typical:'73,000~128,000', note:'최고가·최고편차 카테고리'},
+
+ {category:'SHOES', brand:'미세키서울(W)', count:2, min:158000, max:158000, avg:158000, typical:'158,000', note:'핵심 카테고리 아님'},
+ {category:'SHOES', brand:'레이브스튜디오', count:17, min:88000, max:209000, avg:137000, typical:'88,000~209,000', note:''},
+
+ {category:'ACC/SMALL GOODS', brand:'미세키서울(W)', count:43, min:18000, max:98000, avg:44000, typical:'18,000~44,000', note:'남성 라인 평균 61,000원(26개)'},
+ {category:'ACC/SMALL GOODS', brand:'더반넷', count:75, min:9000, max:375000, avg:84000, typical:'45,000 (18개 SKU 집중)', note:'저가~고가 혼재(이원화)'},
+ {category:'ACC/SMALL GOODS', brand:'레이브스튜디오', count:43, min:13000, max:98000, avg:52000, typical:'13,000~98,000', note:'저관여 충동구매 라인'},
+
+ // ---- 2026-07-08 추가 조사분 (22개 브랜드) ----
+ {category:'OUTER', brand:'론론', count:235, min:69300, max:139900, avg:96800, typical:'69,300~139,900', note:'카디건 6.9만~9.9만, 자켓 9.9만~13.9만'},
+ {category:'KNIT', brand:'론론', count:310, min:69300, max:99000, avg:90300, typical:'89,000~99,000', note:'카디건 위주 밀집'},
+ {category:'TOP(통합)', brand:'론론', count:900, min:39600, max:79200, avg:56900, typical:'39,600~55,000', note:'티셔츠+슬리브리스+블라우스+맨투맨 통합'},
+ {category:'BOTTOM(통합)', brand:'론론', count:400, min:69300, max:139900, avg:95500, typical:'79,000~98,000', note:'팬츠+스커트 통합, 세트상품 제외'},
+ {category:'DRESS', brand:'론론', count:62, min:69300, max:149900, avg:92400, typical:'69,300~99,000', note:'저가 셔츠원피스~고가 셔링드레스 공존'},
+ {category:'ACC/SMALL GOODS', brand:'론론', count:175, min:29700, max:99000, avg:55700, typical:'29,700~59,000', note:'가방+모자+잡화 통합'},
+ {category:'SHOES', brand:'론론', count:0, min:null, max:null, avg:null, typical:'-', note:'미취급'},
+ {category:'OUTER', brand:'파르티멘토(W)', count:60, min:69300, max:132300, avg:100800, typical:'69,300~132,300', note:'정가 대비 30% 할인가'},
+ {category:'KNIT', brand:'파르티멘토(W)', count:65, min:40600, max:51800, avg:45600, typical:'40,600~51,800', note:''},
+ {category:'BLOUSE/SHIRT', brand:'파르티멘토(W)', count:50, min:52500, max:60200, avg:55900, typical:'52,500~60,200', note:''},
+ {category:'DRESS', brand:'파르티멘토(W)', count:50, min:39900, max:68600, avg:55100, typical:'39,900~68,600', note:''},
+ {category:'T-SHIRT', brand:'파르티멘토(W)', count:60, min:27300, max:33600, avg:29600, typical:'27,300~33,600', note:''},
+ {category:'BOTTOM(통합)', brand:'파르티멘토(W)', count:60, min:39200, max:61600, avg:49600, typical:'39,200~61,600', note:'팬츠+스커트 통합'},
+ {category:'BAG', brand:'파르티멘토(W)', count:50, min:12600, max:43400, avg:28000, typical:'12,600~43,400', note:''},
+ {category:'ACC/SMALL GOODS', brand:'파르티멘토(W)', count:65, min:9100, max:25900, avg:17500, typical:'9,100~25,900', note:''},
+ {category:'OUTER', brand:'파르티멘토(M)', count:50, min:54900, max:85900, avg:75800, typical:'54,900~85,900', note:''},
+ {category:'KNIT', brand:'파르티멘토(M)', count:60, min:44900, max:129900, avg:64100, typical:'44,900~64,100', note:'울니트집업만 고가'},
+ {category:'BLOUSE/SHIRT', brand:'파르티멘토(M)', count:60, min:43600, max:55900, avg:49300, typical:'43,600~55,900', note:''},
+ {category:'T-SHIRT', brand:'파르티멘토(M)', count:60, min:39900, max:43900, avg:40600, typical:'39,900~43,900', note:''},
+ {category:'BOTTOM(통합)', brand:'파르티멘토(M)', count:60, min:44900, max:63900, avg:49300, typical:'44,900~63,900', note:'팬츠'},
+ {category:'ACC/SMALL GOODS', brand:'파르티멘토(M)', count:65, min:26100, max:40100, avg:27300, typical:'26,100~40,100', note:''},
+ {category:'OUTER', brand:'글로니', count:30, min:82000, max:458000, avg:140000, typical:'82,000~165,000', note:'가죽자켓 458k는 예외적 고가'},
+ {category:'T-SHIRT', brand:'글로니', count:100, min:44000, max:79000, avg:51000, typical:'44,000~54,000', note:'립롱슬리브 138k 고가라인 별도'},
+ {category:'DRESS', brand:'글로니', count:20, min:98000, max:428000, avg:155000, typical:'130,000~180,000', note:'슬립드레스 다수, 콜라보 한정 30~43만'},
+ {category:'SKIRT', brand:'글로니', count:20, min:88000, max:138000, avg:100000, typical:'92,000~108,000', note:''},
+ {category:'PANTS', brand:'글로니', count:20, min:55000, max:168000, avg:123000, typical:'98,000~148,000', note:''},
+ {category:'BAG', brand:'글로니', count:10, min:65000, max:275000, avg:100000, typical:'88,000~128,000', note:'콜라보 미니백 275k 예외'},
+ {category:'ACC/SMALL GOODS', brand:'글로니', count:30, min:14000, max:195000, avg:50000, typical:'40,000~60,000', note:'콜라보 굿즈세트 195k 예외'},
+ {category:'SHOES', brand:'글로니', count:0, min:null, max:null, avg:null, typical:'-', note:'미취급'},
+ {category:'OUTER', brand:'닉앤니콜', count:300, min:88000, max:238000, avg:150000, typical:'148,000~228,000', note:'재킷 밀집'},
+ {category:'TOP(통합)', brand:'닉앤니콜', count:600, min:39000, max:76000, avg:57500, typical:'40,000~70,000', note:'니트+티셔츠+블라우스 통합'},
+ {category:'DRESS', brand:'닉앤니콜', count:30, min:68000, max:148000, avg:115000, typical:'90,000~130,000', note:''},
+ {category:'BOTTOM(통합)', brand:'닉앤니콜', count:300, min:88000, max:138000, avg:120000, typical:'100,000~138,000', note:'팬츠+스커트 통합'},
+ {category:'BAG', brand:'닉앤니콜', count:150, min:18000, max:138000, avg:80000, typical:'89,000~138,000', note:''},
+ {category:'ACC/SMALL GOODS', brand:'닉앤니콜', count:250, min:38000, max:98000, avg:55000, typical:'48,000 균일가대', note:''},
+ {category:'SHOES', brand:'닉앤니콜', count:1, min:98000, max:98000, avg:98000, typical:'98,000', note:'사실상 미취급'},
+ {category:'OUTER', brand:'일리고', count:60, min:72000, max:138000, avg:99000, typical:'72,000~138,000', note:''},
+ {category:'T-SHIRT', brand:'일리고', count:40, min:36000, max:62000, avg:45000, typical:'36,000~45,000', note:''},
+ {category:'BLOUSE/SHIRT', brand:'일리고', count:18, min:58000, max:62000, avg:61000, typical:'58,000~62,000', note:'편차 매우 작음'},
+ {category:'DRESS', brand:'일리고', count:10, min:86000, max:116000, avg:104000, typical:'86,000~116,000', note:''},
+ {category:'SKIRT', brand:'일리고', count:22, min:52000, max:120000, avg:78000, typical:'52,000~120,000', note:''},
+ {category:'PANTS', brand:'일리고', count:19, min:42000, max:92000, avg:71000, typical:'42,000~92,000', note:''},
+ {category:'BAG', brand:'일리고', count:30, min:29900, max:90000, avg:64000, typical:'59,000~90,000', note:''},
+ {category:'ACC/SMALL GOODS', brand:'일리고', count:50, min:30000, max:52000, avg:40000, typical:'30,000~52,000', note:''},
+ {category:'SHOES', brand:'일리고', count:0, min:null, max:null, avg:null, typical:'-', note:'미취급'},
+ {category:'OUTER', brand:'허그유어스킨', count:45, min:98000, max:189000, avg:138000, typical:'98,000~189,000', note:''},
+ {category:'TOP(통합)', brand:'허그유어스킨', count:60, min:65000, max:89000, avg:71000, typical:'65,000~89,000', note:''},
+ {category:'BOTTOM(통합)', brand:'허그유어스킨', count:50, min:95000, max:159000, avg:115000, typical:'95,000~159,000', note:'스커트+팬츠+데님'},
+ {category:'DRESS', brand:'허그유어스킨', count:35, min:109000, max:145000, avg:127000, typical:'109,000~145,000', note:''},
+ {category:'ACC/SMALL GOODS', brand:'허그유어스킨', count:60, min:25000, max:149000, avg:65000, typical:'25,000~65,000', note:'캡/백/스카프 편차 큼'},
+ {category:'전체', brand:'길라아카이브', count:null, min:null, max:null, avg:null, typical:'-', note:'사이트 접속 불가(DNS/차단 추정) — 재조사 필요'},
+ {category:'OUTER', brand:'2000아카이브', count:48, min:168000, max:218000, avg:188000, typical:'168,000~218,000', note:''},
+ {category:'TOP(통합)', brand:'2000아카이브', count:230, min:119000, max:149000, avg:132000, typical:'119,000~149,000', note:'니트+티셔츠+블라우스'},
+ {category:'DENIM', brand:'2000아카이브', count:20, min:199000, max:239000, avg:220000, typical:'199,000~239,000', note:''},
+ {category:'DRESS', brand:'2000아카이브', count:3, min:125000, max:138000, avg:134000, typical:'125,000~138,000', note:'물량 극소, 대부분 품절'},
+ {category:'SKIRT', brand:'2000아카이브', count:32, min:78000, max:132000, avg:110000, typical:'78,000~132,000', note:''},
+ {category:'PANTS', brand:'2000아카이브', count:48, min:58000, max:168000, avg:102000, typical:'58,000~168,000', note:'레깅스/조거 포함'},
+ {category:'SHOES', brand:'2000아카이브', count:16, min:210000, max:399000, avg:290000, typical:'210,000~399,000', note:'부츠 중심'},
+ {category:'BAG', brand:'2000아카이브', count:40, min:138000, max:339000, avg:230000, typical:'138,000~339,000', note:''},
+ {category:'ACC/SMALL GOODS', brand:'2000아카이브', count:96, min:18000, max:139000, avg:85000, typical:'18,000~139,000', note:''},
+ {category:'OUTER', brand:'보헴서울', count:65, min:89000, max:382000, avg:222000, typical:'200,000~380,000', note:'가죽/무스탕이 고가대 견인'},
+ {category:'TOP(통합)', brand:'보헴서울', count:115, min:48000, max:108000, avg:75000, typical:'48,000~108,000', note:'니트+블라우스+티셔츠'},
+ {category:'BOTTOM(통합)', brand:'보헴서울', count:115, min:52000, max:168000, avg:105000, typical:'52,000~168,000', note:'팬츠+스커트, 데님과 중복'},
+ {category:'DENIM', brand:'보헴서울', count:44, min:94000, max:182000, avg:134000, typical:'120,000~160,000', note:''},
+ {category:'DRESS', brand:'보헴서울', count:19, min:58000, max:142000, avg:97000, typical:'58,000~142,000', note:'전체 SKU 1페이지뿐'},
+ {category:'SHOES', brand:'보헴서울', count:5, min:289000, max:376000, avg:343000, typical:'289,000~376,000', note:'SKU 극소'},
+ {category:'BAG', brand:'보헴서울', count:3, min:182000, max:239000, avg:210000, typical:'182,000~239,000', note:'별도 카테고리 없음'},
+ {category:'ACC/SMALL GOODS', brand:'보헴서울', count:40, min:34000, max:102000, avg:75000, typical:'34,000~102,000', note:''},
+ {category:'OUTER', brand:'트리밍버드', count:60, min:139000, max:289000, avg:217000, typical:'190,000~250,000', note:'5페이지 전체 기준'},
+ {category:'TOP(통합)', brand:'트리밍버드', count:60, min:49000, max:129000, avg:81000, typical:'69,000~89,000', note:'티셔츠+블라우스'},
+ {category:'KNIT', brand:'트리밍버드', count:60, min:98000, max:169000, avg:140000, typical:'149,000대', note:''},
+ {category:'DRESS', brand:'트리밍버드', count:60, min:149000, max:298000, avg:235000, typical:'149,000~289,000', note:''},
+ {category:'PANTS', brand:'트리밍버드', count:60, min:149000, max:189000, avg:177000, typical:'169,000~189,000', note:'데님 포함'},
+ {category:'SKIRT', brand:'트리밍버드', count:60, min:139000, max:239000, avg:174000, typical:'169,000~179,000', note:''},
+ {category:'BAG', brand:'트리밍버드', count:60, min:129000, max:219000, avg:184000, typical:'198,000~219,000', note:''},
+ {category:'SHOES', brand:'트리밍버드', count:26, min:219000, max:398000, avg:256000, typical:'219,000~269,000', note:'최상단 가격대'},
+ {category:'ACC/SMALL GOODS', brand:'트리밍버드', count:60, min:29000, max:169000, avg:73000, typical:'49,000대', note:''},
+ {category:'OUTER', brand:'로우클래식', count:30, min:239000, max:989000, avg:400000, typical:'230,000~400,000', note:'레더 아이템이 최고가 아웃라이어'},
+ {category:'KNIT', brand:'로우클래식', count:35, min:159000, max:359000, avg:240000, typical:'약 200,000대', note:''},
+ {category:'T-SHIRT', brand:'로우클래식', count:35, min:69000, max:279000, avg:110000, typical:'69,000~90,000', note:'디테일/프린트는 10~16만'},
+ {category:'BLOUSE/SHIRT', brand:'로우클래식', count:35, min:119000, max:279000, avg:230000, typical:'220,000~260,000', note:'시어 소재 다수'},
+ {category:'DRESS', brand:'로우클래식', count:15, min:179000, max:399000, avg:280000, typical:'250,000~330,000', note:''},
+ {category:'SKIRT', brand:'로우클래식', count:30, min:159000, max:299000, avg:220000, typical:'170,000~260,000', note:''},
+ {category:'PANTS', brand:'로우클래식', count:33, min:179000, max:279000, avg:220000, typical:'200,000~240,000', note:'데님/트라우저'},
+ {category:'BAG', brand:'로우클래식', count:20, min:59000, max:469000, avg:330000, typical:'220,000~430,000', note:'콜라보 미니백 5.9만 예외'},
+ {category:'SHOES', brand:'로우클래식', count:14, min:194000, max:529000, avg:350000, typical:'330,000~530,000', note:''},
+ {category:'ACC/SMALL GOODS', brand:'로우클래식', count:12, min:39000, max:282000, avg:110000, typical:'80,000~130,000', note:'선글라스 28.2만 예외'},
+ {category:'OUTER', brand:'오픈와이와이', count:16, min:176000, max:598000, avg:330000, typical:'250,000~300,000', note:'카고/봄버 재킷 다수'},
+ {category:'KNIT', brand:'오픈와이와이', count:5, min:169000, max:258000, avg:200000, typical:'169,000~258,000', note:'표본 적음'},
+ {category:'T-SHIRT', brand:'오픈와이와이', count:15, min:63000, max:209000, avg:110000, typical:'80,000~130,000', note:''},
+ {category:'BLOUSE/SHIRT', brand:'오픈와이와이', count:6, min:125000, max:218000, avg:170000, typical:'125,000~218,000', note:''},
+ {category:'DRESS', brand:'오픈와이와이', count:5, min:169000, max:298000, avg:220000, typical:'169,000~298,000', note:''},
+ {category:'SKIRT', brand:'오픈와이와이', count:4, min:149000, max:178000, avg:160000, typical:'149,000~178,000', note:'표본 적음'},
+ {category:'PANTS', brand:'오픈와이와이', count:12, min:98000, max:278000, avg:200000, typical:'150,000~250,000', note:'레깅스가 최저가 견인'},
+ {category:'BAG', brand:'오픈와이와이', count:34, min:129000, max:480000, avg:270000, typical:'200,000~350,000', note:''},
+ {category:'SHOES', brand:'오픈와이와이', count:60, min:139000, max:698000, avg:350000, typical:'290,000~390,000', note:'발레플랫 다수, 부츠 45만+'},
+ {category:'ACC/SMALL GOODS', brand:'오픈와이와이', count:15, min:65000, max:129000, avg:100000, typical:'65,000~129,000', note:''},
+ {category:'전체', brand:'스컬프터페이지', count:null, min:null, max:null, avg:null, typical:'-', note:'국가 접속 제한(Cafe24) — 재조사 필요'},
+ {category:'OUTER', brand:'오더샵', count:10, min:84000, max:272000, avg:222500, typical:'220,000~270,000', note:'트렌치/재킷 주력'},
+ {category:'KNIT', brand:'오더샵', count:1, min:85500, max:85500, avg:85500, typical:'85,500', note:'표본 1건, 전용 카테고리 없음'},
+ {category:'T-SHIRT', brand:'오더샵', count:4, min:40700, max:82000, avg:61100, typical:'40,700~82,000', note:''},
+ {category:'BLOUSE/SHIRT', brand:'오더샵', count:8, min:38500, max:111000, avg:65300, typical:'38,500~65,000', note:''},
+ {category:'DRESS', brand:'오더샵', count:6, min:129600, max:186000, avg:155000, typical:'129,600~186,000', note:''},
+ {category:'SKIRT', brand:'오더샵', count:3, min:129000, max:155000, avg:146300, typical:'129,000~155,000', note:'표본 적음'},
+ {category:'PANTS', brand:'오더샵', count:15, min:87300, max:218000, avg:140000, typical:'128,000~218,000', note:''},
+ {category:'BAG', brand:'오더샵', count:3, min:88500, max:186000, avg:121800, typical:'88,500~186,000', note:''},
+ {category:'SHOES', brand:'오더샵', count:1, min:124000, max:124000, avg:124000, typical:'124,000', note:'표본 1건'},
+ {category:'ACC/SMALL GOODS', brand:'오더샵', count:3, min:39000, max:71000, avg:49700, typical:'39,000~71,000', note:''},
+ {category:'OUTER', brand:'코이세오', count:90, min:138000, max:318000, avg:190000, typical:'145,000~258,000', note:'구스다운 318k 최고가'},
+ {category:'KNIT', brand:'코이세오', count:10, min:118000, max:208000, avg:163000, typical:'118,000~208,000', note:'아우터/원피스에 분산'},
+ {category:'T-SHIRT', brand:'코이세오', count:30, min:38000, max:108000, avg:65000, typical:'48,000~58,000', note:''},
+ {category:'BLOUSE/SHIRT', brand:'코이세오', count:15, min:73000, max:118000, avg:95000, typical:'73,000~118,000', note:''},
+ {category:'DRESS', brand:'코이세오', count:40, min:89000, max:229000, avg:150000, typical:'128,000~183,000', note:''},
+ {category:'SKIRT', brand:'코이세오', count:20, min:58000, max:148000, avg:103000, typical:'128,000~148,000', note:''},
+ {category:'PANTS', brand:'코이세오', count:25, min:38000, max:169000, avg:155000, typical:'148,000~169,000', note:'쇼츠 제외 시 밀집'},
+ {category:'BAG', brand:'코이세오', count:40, min:53000, max:158000, avg:120000, typical:'118,000~158,000', note:''},
+ {category:'SHOES', brand:'코이세오', count:11, min:128000, max:198000, avg:163000, typical:'128,000~198,000', note:''},
+ {category:'ACC/SMALL GOODS', brand:'코이세오', count:100, min:23000, max:189000, avg:55000, typical:'33,000~68,000', note:'콜라보 워치 189k 예외'},
+ {category:'OUTER', brand:'오헤시오', count:65, min:108000, max:218000, avg:165000, typical:'108,000~218,000', note:''},
+ {category:'T-SHIRT', brand:'오헤시오', count:190, min:42000, max:81000, avg:58000, typical:'42,000~81,000', note:'TOP 통합 내 티셔츠'},
+ {category:'BLOUSE/SHIRT', brand:'오헤시오', count:190, min:51000, max:118000, avg:75000, typical:'51,000~118,000', note:'TOP 통합 내 블라우스'},
+ {category:'PANTS', brand:'오헤시오', count:85, min:98000, max:157000, avg:130000, typical:'98,000~157,000', note:'BOTTOMS 통합'},
+ {category:'SKIRT', brand:'오헤시오', count:85, min:139000, max:139000, avg:139000, typical:'139,000', note:'표본 2종뿐'},
+ {category:'DRESS', brand:'오헤시오', count:45, min:99000, max:198000, avg:134000, typical:'99,000~198,000', note:''},
+ {category:'BAG', brand:'오헤시오', count:45, min:42000, max:158000, avg:81000, typical:'42,000~158,000', note:''},
+ {category:'ACC/SMALL GOODS', brand:'오헤시오', count:90, min:21000, max:98000, avg:64000, typical:'21,000~98,000', note:'액세서리+신발 통합'},
+ {category:'OUTER', brand:'인사일런스', count:40, min:95200, max:199500, avg:156500, typical:'150,000~200,000', note:'트위드/레더/스웨이드'},
+ {category:'KNIT', brand:'인사일런스', count:9, min:85400, max:116200, avg:106000, typical:'85,400~116,200', note:'카테고리 규모 작음'},
+ {category:'TOP(통합)', brand:'인사일런스', count:44, min:62000, max:113000, avg:83500, typical:'62,000~113,000', note:'탑+셔츠 통합'},
+ {category:'DRESS', brand:'인사일런스', count:44, min:68600, max:159300, avg:121800, typical:'68,600~159,300', note:'원피스+스커트 통합'},
+ {category:'PANTS', brand:'인사일런스', count:27, min:67200, max:169200, avg:115000, typical:'67,200~169,200', note:''},
+ {category:'ACC/SMALL GOODS', brand:'인사일런스', count:28, min:25200, max:150400, avg:72400, typical:'25,000~80,000', note:'가방+벨트+모자'},
+ {category:'OUTER', brand:'플리즈노팔로우', count:9, min:168000, max:288000, avg:210000, typical:'168,000~288,000', note:''},
+ {category:'TOP(통합)', brand:'플리즈노팔로우', count:50, min:29000, max:135000, avg:72500, typical:'65,000~80,000', note:'티셔츠+탑+블라우스'},
+ {category:'SKIRT', brand:'플리즈노팔로우', count:2, min:79000, max:182000, avg:130500, typical:'79,000~182,000', note:'표본 2종'},
+ {category:'PANTS', brand:'플리즈노팔로우', count:13, min:88000, max:219000, avg:160000, typical:'135,000~219,000', note:'조거+카고+데님+반바지'},
+ {category:'ACC/SMALL GOODS', brand:'플리즈노팔로우', count:1, min:32000, max:32000, avg:32000, typical:'32,000', note:'표본 1종(스카프)'},
+ {category:'OUTER', brand:'익스파이어드걸', count:15, min:88000, max:206000, avg:137000, typical:'88,000~206,000', note:'전수 확인'},
+ {category:'TOP(통합)', brand:'익스파이어드걸', count:65, min:39000, max:84000, avg:62000, typical:'39,000~84,000', note:'니트+티셔츠+블라우스+탱크'},
+ {category:'BOTTOM(통합)', brand:'익스파이어드걸', count:44, min:57000, max:136000, avg:86000, typical:'57,000~136,000', note:'팬츠+스커트+레깅스'},
+ {category:'DRESS', brand:'익스파이어드걸', count:6, min:96000, max:124000, avg:114000, typical:'96,000~124,000', note:'전수 확인'},
+ {category:'ACC/SMALL GOODS', brand:'익스파이어드걸', count:9, min:48000, max:138000, avg:69000, typical:'48,000~138,000', note:'가방 포함, 신발 없음'},
+ {category:'SHOES', brand:'익스파이어드걸', count:0, min:null, max:null, avg:null, typical:'-', note:'미취급'},
+ {category:'전체', brand:'카시코', count:null, min:null, max:null, avg:null, typical:'-', note:'SixShop 플랫폼 JS 렌더링 — 브라우저 연동 필요, 카테고리만 확인(Outerwears/Dresses/Tops/Pants/Skirts/Bags/Accessories)'},
+ {category:'OUTER', brand:'선번프로젝트', count:12, min:90300, max:197100, avg:120400, typical:'90,000~130,000', note:'할인판매가 기준'},
+ {category:'KNIT', brand:'선번프로젝트', count:12, min:60000, max:139000, avg:91700, typical:'60,000~92,000', note:''},
+ {category:'TOP(통합)', brand:'선번프로젝트', count:12, min:49500, max:76000, avg:55400, typical:'49,500~76,000', note:'티셔츠 위주'},
+ {category:'PANTS', brand:'선번프로젝트', count:7, min:63200, max:116100, avg:87000, typical:'63,200~116,100', note:''},
+ {category:'SKIRT', brand:'선번프로젝트', count:5, min:55200, max:80100, avg:66600, typical:'55,200~80,100', note:''},
+ {category:'DRESS', brand:'선번프로젝트', count:9, min:66000, max:111200, avg:89700, typical:'66,000~111,200', note:''},
+ {category:'BAG&SHOES', brand:'선번프로젝트', count:12, min:44100, max:215100, avg:106900, typical:'44,000~107,000', note:'편차 큼, 신발 표본 1건'},
+ {category:'ACC/SMALL GOODS', brand:'선번프로젝트', count:12, min:22500, max:125100, avg:59500, typical:'30,000~60,000', note:''},
+ {category:'OUTER', brand:'프레클', count:25, min:103000, max:360000, avg:180000, typical:'103,000~250,000', note:'코트류가 고가 견인'},
+ {category:'TOP(통합)', brand:'프레클', count:25, min:57000, max:152000, avg:110000, typical:'57,000~115,000', note:'니트+티+블라우스'},
+ {category:'BOTTOM(통합)', brand:'프레클', count:25, min:78000, max:330000, avg:130000, typical:'90,000~150,000', note:'스커트+팬츠, 하이엔드 예외 있음'},
+ {category:'DRESS', brand:'프레클', count:25, min:70000, max:320000, avg:150000, typical:'70,000~150,000', note:'튤 롱드레스 32만 최고가'},
+ {category:'ACC/SMALL GOODS', brand:'프레클', count:25, min:7000, max:144000, avg:60000, typical:'7,000~60,000', note:'가방+신발+모자+양말 통합, 재고 품절 다수'},
+ {category:'OUTER', brand:'시눈(자사)', count:64, min:138000, max:328000, avg:216000, typical:'150,000~250,000', note:'자사 브랜드(비교 기준점). 1p 샘플 기준, 전체 약 64개 추정. 판매가(정가) 기준'},
+ {category:'KNIT', brand:'시눈(자사)', count:80, min:108000, max:178000, avg:143000, typical:'118,000~158,000', note:'자사 브랜드(비교 기준점). 1p 샘플 기준, 전체 약 80개 추정'},
+ {category:'TOP(통합)', brand:'시눈(자사)', count:80, min:58000, max:138000, avg:97000, typical:'58,000~118,000', note:'자사 브랜드(비교 기준점). T-shirts+Sleeveless+Blouse/Shirts+Sweatshirts 통합, 1p 샘플 기준 추정'},
+ {category:'BOTTOM(통합)', brand:'시눈(자사)', count:80, min:68000, max:178000, avg:131000, typical:'108,000~158,000', note:'자사 브랜드(비교 기준점). Skirt+Pants+Denim+Shorts 통합, 1p 샘플 기준 추정'},
+ {category:'DRESS', brand:'시눈(자사)', count:64, min:148000, max:228000, avg:178000, typical:'148,000~198,000', note:'자사 브랜드(비교 기준점). Mini/Midi/Long/Overall 통합, 1p 샘플 기준 추정'},
+ {category:'ACC/SMALL GOODS', brand:'시눈(자사)', count:80, min:28000, max:99000, avg:57000, typical:'38,000~68,000', note:'자사 브랜드(비교 기준점). Bag+Shoes+Jewelry+Goods+Head&HairAcc+Scarves&Socks 통합, 1p 샘플 기준 추정'},
+ {category:'SWIM', brand:'시눈(자사)', count:8, min:58000, max:128000, avg:99000, typical:'63,000~118,000', note:'자사 브랜드(비교 기준점). 전 상품 조사(1p 전체)'},
+ {category:'HOMEWEAR', brand:'시눈(자사)', count:12, min:38000, max:176000, avg:91000, typical:'58,000~138,000', note:'자사 브랜드(비교 기준점). 파자마/홈웨어, 전 상품 조사(1p 전체)'},
+ {category:'전체', brand:'페일하우스', count:3, min:48000, max:68000, avg:59700, typical:'48,000~68,000', note:'셀렉트 빈티지/리워크 샵. 사이트 전체 SKU가 VTG 2건+REWORKED 1건(품절)뿐인 소규모 신생 샵 — 카테고리별 세분 불가, 전수 확인'},
+];
+
+// ---------------------------------------------------------------------
+// BRAND_STYLE: 포지셔닝 맵의 가로축(스타일) 점수. 0=LOVELY ... 100=HIP
+// 브랜드 룩/상품명/무드 기반 정성 평가. 신규 브랜드는 기본값 50(중앙)으로
+// 표시되며, 조사 후 이 표에 실제 값을 추가해 보정해야 합니다.
+// ---------------------------------------------------------------------
+let BRAND_STYLE = {
+  '미세키서울(W)': 55,
+  '더반넷': 50,
+  '레이브스튜디오': 30,
+  '론론': 35,
+  '파르티멘토(W)': 65,
+  '파르티멘토(M)': 65,
+  '글로니': 20,
+  '닉앤니콜': 25,
+  '일리고': 35,
+  '허그유어스킨': 85,
+  '2000아카이브': 90,
+  '보헴서울': 70,
+  '트리밍버드': 15,
+  '로우클래식': 45,
+  '오픈와이와이': 75,
+  '오더샵': 20,
+  '코이세오': 40,
+  '오헤시오': 45,
+  '인사일런스': 50,
+  '플리즈노팔로우': 80,
+  '익스파이어드걸': 85,
+  '선번프로젝트': 75,
+  '프레클': 20,
+  '시눈(자사)': 22,
+  '페일하우스': 60,
+};
+
+// ---------------------------------------------------------------------
+// BRAND_EN: 브랜드명 영문 표기. 목록/라벨에는 "영문 한글" 병기로 표시.
+// 매핑이 없는 신규 브랜드는 한글명이 그대로 노출됩니다.
+// ---------------------------------------------------------------------
+let BRAND_EN = {
+  '미세키서울(W)': 'MISEKI SEOUL (W)',
+  '더반넷': 'THE BARNNET',
+  '레이브스튜디오': 'RAIVE STUDIO',
+  '론론': 'RONRON',
+  '파르티멘토(W)': 'PARTIMENTO (W)',
+  '파르티멘토(M)': 'PARTIMENTO (M)',
+  '글로니': 'GLOWNY',
+  '닉앤니콜': 'NICK&NICOLE',
+  '일리고': 'ILLIGO',
+  '허그유어스킨': 'HUG YOUR SKIN',
+  '길라아카이브': 'GILA ARCHIVE',
+  '2000아카이브': '2000 ARCHIVES',
+  '보헴서울': 'BOHEM SEOUL',
+  '트리밍버드': 'TREEMING BIRD',
+  '로우클래식': 'LOW CLASSIC',
+  '오픈와이와이': 'OPEN YY',
+  '스컬프터페이지': 'SCULPTOR PAGE',
+  '오더샵': 'ODOR',
+  '코이세오': 'COYSEIO',
+  '오헤시오': 'OHESHIO',
+  '인사일런스': 'INSILENCE',
+  '플리즈노팔로우': 'PLEASE NO FOLLOW',
+  '익스파이어드걸': 'EXPIRED GIRL',
+  '카시코': 'KASHIKO',
+  '선번프로젝트': 'SUNBURN PROJECT',
+  '프레클': 'FRECKLE',
+  '시눈(자사)': 'SINOON',
+  '페일하우스': 'PEIL HAUS',
+};
+
+// ---------------------------------------------------------------------
+// BRAND_URL: 브랜드 공식 사이트 링크 ("사이트 링크" 탭에서 사용)
+// ---------------------------------------------------------------------
+let BRAND_URL = {
+  '미세키서울(W)': 'https://misekiseoul.kr',
+  '더반넷': 'https://the-barnnet.com',
+  '레이브스튜디오': 'https://raivestudio.com',
+  '론론': 'https://ronron.co.kr',
+  '파르티멘토(W)': 'https://partimento.com',
+  '파르티멘토(M)': 'https://partimento.com',
+  '글로니': 'https://glowny.co.kr',
+  '닉앤니콜': 'https://nicknnicole.co.kr',
+  '일리고': 'https://illigo.co.kr',
+  '허그유어스킨': 'https://hugyourskin.kr',
+  '길라아카이브': 'https://gilaarchive.com',
+  '2000아카이브': 'https://2000archives.com',
+  '보헴서울': 'https://bohemseo.com',
+  '트리밍버드': 'https://treemingbird.com',
+  '로우클래식': 'https://lowclassic.com',
+  '오픈와이와이': 'https://open-yy.com',
+  '스컬프터페이지': 'https://sculptorpage.com',
+  '오더샵': 'https://odorshop.co.kr',
+  '코이세오': 'https://coyseio.com',
+  '오헤시오': 'https://oheshio.com',
+  '인사일런스': 'https://insilence.co.kr',
+  '플리즈노팔로우': 'https://pleasenofollow.kr',
+  '익스파이어드걸': 'https://expiredgirl.com',
+  '카시코': 'https://kashiko.kr',
+  '선번프로젝트': 'https://sunburnproject.com',
+  '프레클': 'https://freckle.kr',
+  '시눈(자사)': 'https://sinoon.co.kr',
+  '페일하우스': 'https://peilhaus.kr',
+};
+function enName(brand){ return BRAND_EN[brand] || brand; }
+function nameLine(brand){ return BRAND_EN[brand] ? `${BRAND_EN[brand]} ${brand}` : brand; }
+function nameStack(brand){
+  return BRAND_EN[brand]
+    ? `<div style="font-weight:700;">${BRAND_EN[brand]}</div><div style="font-size:11px;color:#999;font-weight:400;">${brand}</div>`
+    : `<div style="font-weight:700;">${brand}</div>`;
+}
+
+let INSIGHTS = [
+ 'OUTER: 세 브랜드 모두 12~30만원대. 미세키서울 평균가(247,000원)가 가장 높고, 더반넷은 128,000원 미만 상품이 없는 프리미엄 라인.',
+ 'T-SHIRT/TOP: 세 브랜드 공통으로 물량 최다 카테고리(레이브 117개, 더반넷 Top 160개, 미세키서울 46개) — 트래픽 유입용 저가 라인. 레이브는 상시 15~30% 할인 운영.',
+ 'DRESS: 세 브랜드 평균가가 148,000~153,000원으로 거의 동일 — 가격 경쟁이 가장 치열한 구간.',
+ 'BAG: 레이브(평균 161,000원)가 가장 고가·고편차. 더반넷·미세키서울은 저가/고가 이원화 구조.',
+ '세 브랜드 모두 38k/68k/98k/128k 식의 라운드 넘버 가격 티어 사용 — 명확한 price ladder 설계.',
+ '더반넷은 스커트/팬츠(Bottom), 블라우스/셔츠/티(Top)가 서브 구분 없이 통합 운영되어 일부 항목은 개별 분리가 불가.',
+];
+
+function boot(){
+
+// ---------------------------------------------------------------------
+// 색상: 브랜드마다 다른 색을 쓰지 않고, "왼쪽에서 선택한 브랜드"만 강조색으로
+// 표시합니다. 그 외 브랜드는 전부 동일한 회색입니다.
+// ---------------------------------------------------------------------
+const ACCENT = '#185FA5';
+const NEUTRAL = '#B4B2A9';
+const FLAG = '#BA7517';
+const brands = [...new Set(DATA.map(d=>d.brand))];
+let selectedBrand = brands[0];
+function colorFor(brand){ return brand === selectedBrand ? ACCENT : NEUTRAL; }
+function fmt(n){ return n==null ? '-' : '₩' + n.toLocaleString('ko-KR'); }
+function hasNoData(b){ return DATA.filter(d=>d.brand===b).every(d=>d.avg==null); }
+
+// ---------------------------------------------------------------------
+// 새 브랜드 조사 요청 폼 (목업)
+// ---------------------------------------------------------------------
+const CATEGORY_OPTIONS = ['전체(자동판단)','OUTER','KNIT','T-SHIRT','BLOUSE/SHIRT','DRESS','SKIRT','PANTS','BAG','SHOES','ACC/SMALL GOODS'];
+let selectedCats = new Set();
+
+function loadPending(){
+  try { return JSON.parse(localStorage.getItem('sinoon_pending_brand_requests') || '[]'); }
+  catch(e){ return []; }
+}
+function savePending(list){
+  try { localStorage.setItem('sinoon_pending_brand_requests', JSON.stringify(list)); }
+  catch(e){ /* storage unavailable, ignore */ }
+}
+
+function buildChatMessage(url, cats){
+  let msg = '아래 브랜드 가격대 조사해서 대시보드에 반영해줘\n' + url;
+  if (cats && cats.length) msg += '\n카테고리: ' + cats.join(', ');
+  return msg;
+}
+function fallbackCopy(text){
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); } catch(e) { /* ignore */ }
+  document.body.removeChild(ta);
+}
+function copyText(text){
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).catch(()=>fallbackCopy(text));
+  } else {
+    fallbackCopy(text);
+  }
+}
+let copyToastTimer = null;
+function showCopyToast(msg){
+  const toast = document.getElementById('copyToast');
+  toast.textContent = msg;
+  toast.style.display = 'block';
+  if (copyToastTimer) clearTimeout(copyToastTimer);
+  copyToastTimer = setTimeout(()=>{ toast.style.display = 'none'; }, 4000);
+}
+
+const catPicker = document.getElementById('catPicker');
+catPicker.innerHTML = CATEGORY_OPTIONS.map(c=>`<span class="cat-chip" data-cat="${c}">${c}</span>`).join('');
+catPicker.querySelectorAll('.cat-chip').forEach(chip=>{
+  chip.addEventListener('click', ()=>{
+    const cat = chip.dataset.cat;
+    if (selectedCats.has(cat)) { selectedCats.delete(cat); chip.classList.remove('selected'); }
+    else { selectedCats.add(cat); chip.classList.add('selected'); }
+  });
+});
+
+function renderPending(){
+  const list = loadPending();
+  const wrap = document.getElementById('pendingWrap');
+  if (!list.length) {
+    wrap.innerHTML = '<div class="pending-empty">아직 등록된 조사 요청이 없습니다.</div>';
+    return;
+  }
+  const rows = list.map((item, i) => `
+    <tr>
+      <td style="max-width:280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${item.url}</td>
+      <td>${item.cats.join(', ') || '전체(자동판단)'}</td>
+      <td>${item.addedAt}</td>
+      <td><span class="pending-status">대기중(채팅 전송 필요)</span></td>
+      <td style="white-space:nowrap;">
+        <button class="pending-remove" data-copy-i="${i}" style="color:#185FA5;">메시지 복사</button>
+        <button class="pending-remove" data-i="${i}">삭제</button>
+      </td>
+    </tr>
+  `).join('');
+  wrap.innerHTML = `
+    <table class="pending-table">
+      <thead><tr><th>사이트 링크</th><th>조사 카테고리</th><th>등록일시</th><th>상태</th><th></th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+  wrap.querySelectorAll('[data-copy-i]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const item = loadPending()[Number(btn.dataset.copyI)];
+      if (!item) return;
+      copyText(buildChatMessage(item.url, item.cats));
+      showCopyToast('채팅 메시지가 복사됐어요. 채팅창에 붙여넣기(Ctrl+V) 해서 보내주세요.');
+    });
+  });
+  wrap.querySelectorAll('.pending-remove[data-i]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const list = loadPending();
+      list.splice(Number(btn.dataset.i), 1);
+      savePending(list);
+      renderPending();
+    });
+  });
+}
+
+document.getElementById('addBrandBtn').addEventListener('click', ()=>{
+  const input = document.getElementById('newBrandUrl');
+  const url = input.value.trim();
+  if (!url) { input.focus(); return; }
+  const cats = [...selectedCats];
+  const list = loadPending();
+  list.push({
+    url,
+    cats,
+    addedAt: new Date().toISOString().slice(0,16).replace('T',' ')
+  });
+  savePending(list);
+  copyText(buildChatMessage(url, cats));
+  showCopyToast('채팅 메시지가 복사됐어요. 채팅창에 붙여넣기(Ctrl+V) 해서 보내주시면 조사해서 반영할게요.');
+  input.value = '';
+  selectedCats.clear();
+  catPicker.querySelectorAll('.cat-chip').forEach(c=>c.classList.remove('selected'));
+  renderPending();
+});
+renderPending();
+
+// summary cards
+const cardsEl = document.getElementById('summaryCards');
+const validRows = DATA.filter(d => d.avg != null);
+const totalSKU = DATA.reduce((s,d)=>s+(d.count||0),0);
+const overallMin = Math.min(...validRows.map(d=>d.min));
+const overallMax = Math.max(...validRows.map(d=>d.max));
+const overallAvg = Math.round(validRows.reduce((s,d)=>s+d.avg,0)/validRows.length);
+const unresolvedBrands = brands.filter(b => DATA.filter(d=>d.brand===b).every(d=>d.avg==null));
+cardsEl.innerHTML = `
+  <div class="card"><div class="label">조사 브랜드 수</div><div class="value">${brands.length}개</div><div class="sub">${unresolvedBrands.length}개 접속 불가(${unresolvedBrands.map(nameLine).join(', ')||'-'})</div></div>
+  <div class="card"><div class="label">조사 SKU 합계(근사)</div><div class="value">${totalSKU.toLocaleString()}개</div></div>
+  <div class="card"><div class="label">전체 가격 범위</div><div class="value">${fmt(overallMin)} ~ ${fmt(overallMax)}</div></div>
+  <div class="card"><div class="label">전체 평균가(단순평균)</div><div class="value">${fmt(overallAvg)}</div></div>
+`;
+
+// 새 브랜드 조사 요청 아코디언 토글
+const abToggle = document.getElementById('addBrandToggle');
+const abBody = document.getElementById('addBrandBody');
+const abChevron = document.getElementById('addBrandChevron');
+let abOpen = false;
+abToggle.addEventListener('click', ()=>{
+  abOpen = !abOpen;
+  abBody.style.display = abOpen ? 'block' : 'none';
+  abChevron.textContent = abOpen ? '▴' : '▾';
+});
+
+// ---------------------------------------------------------------------
+// 포지셔닝 맵 (LOVELY-HIP x PRICE LOW-HIGH)
+// ---------------------------------------------------------------------
+function renderPositioningMap(){
+  const wrap = document.getElementById('posMap');
+  wrap.innerHTML = '';
+
+  const brandAvg = {};
+  brands.forEach(b=>{
+    const rows = DATA.filter(d=>d.brand===b && d.avg!=null);
+    if (rows.length) brandAvg[b] = rows.reduce((s,d)=>s+d.avg,0)/rows.length;
+  });
+  const plotBrands = Object.keys(brandAvg);
+  if (!plotBrands.length) return;
+
+  const prices = plotBrands.map(b=>brandAvg[b]);
+  const pMin = Math.min(...prices), pMax = Math.max(...prices);
+  const pad = 10;
+
+  const vLine = document.createElement('div');
+  vLine.className = 'posmap-line';
+  vLine.style.cssText = 'left:50%; top:4%; width:2px; height:92%;';
+  wrap.appendChild(vLine);
+  const hLine = document.createElement('div');
+  hLine.className = 'posmap-line';
+  hLine.style.cssText = 'top:50%; left:2%; height:2px; width:96%;';
+  wrap.appendChild(hLine);
+
+  function arrow(style){
+    const a = document.createElement('div');
+    a.className = 'posmap-arrow';
+    a.style.cssText = style;
+    wrap.appendChild(a);
+  }
+  arrow('left:calc(50% - 6px); top:0; border-width:0 6px 9px 6px; border-color:transparent transparent #bbb transparent;');
+  arrow('left:calc(50% - 6px); top:calc(96% - 1px); border-width:9px 6px 0 6px; border-color:#bbb transparent transparent transparent;');
+  arrow('left:1%; top:calc(50% - 6px); border-width:6px 9px 6px 0; border-color:transparent #bbb transparent transparent;');
+  arrow('left:calc(98% - 1px); top:calc(50% - 6px); border-width:6px 0 6px 9px; border-color:transparent transparent transparent #bbb;');
+
+  const labels = [
+    ['PRICE HIGH', 'left:50%; top:0%; transform:translate(10px,-2px);'],
+    ['PRICE LOW', 'left:50%; bottom:0%; transform:translate(10px,2px);'],
+    ['LOVELY', 'left:1%; top:50%; transform:translate(0,-28px);'],
+    ['HIP', 'left:97%; top:50%; transform:translate(-14px,-28px);'],
+  ];
+  labels.forEach(([text, style])=>{
+    const el = document.createElement('div');
+    el.className = 'posmap-axis-label';
+    el.style.cssText = style;
+    el.textContent = text;
+    wrap.appendChild(el);
+  });
+  const center = document.createElement('div');
+  center.className = 'posmap-center-label';
+  center.textContent = 'MODERN';
+  wrap.appendChild(center);
+
+  const buckets = {};
+  plotBrands.forEach(b=>{
+    const x = BRAND_STYLE[b] != null ? BRAND_STYLE[b] : 50;
+    const key = Math.round(x/8);
+    (buckets[key] = buckets[key] || []).push(b);
+  });
+
+  plotBrands.forEach(b=>{
+    const x = BRAND_STYLE[b] != null ? BRAND_STYLE[b] : 50;
+    const y = pMax === pMin ? 50 : (brandAvg[b]-pMin)/(pMax-pMin)*100;
+    const key = Math.round(x/8);
+    const group = buckets[key];
+    const idx = group.indexOf(b);
+    const jitterY = (idx - (group.length-1)/2) * 4.2;
+
+    const leftPct = pad + (x/100)*(100-2*pad);
+    const topPct = pad + (100 - y)/100*(100-2*pad) + jitterY;
+
+    const el = document.createElement('div');
+    el.className = 'posmap-brand';
+    el.style.left = leftPct+'%';
+    el.style.top = Math.max(4, Math.min(96, topPct))+'%';
+    el.style.color = colorFor(b);
+    el.textContent = nameLine(b);
+    el.title = `${nameLine(b)}: 평균 ${fmt(Math.round(brandAvg[b]))} / 스타일점수 ${x}${BRAND_STYLE[b]==null?' (기본값, 미보정)':''}`;
+    wrap.appendChild(el);
+  });
+}
+renderPositioningMap();
+
+// chart: 카테고리 선택 → 브랜드별 가격대(최저~최고, 평균 마커) 리더보드
+const categories = [...new Set(DATA.map(d=>d.category))];
+let currentChartCat = categories.includes('OUTER') ? 'OUTER' : categories[0];
+let metric = 'avg';
+const ctx = document.getElementById('priceChart').getContext('2d');
+
+function chartRowsFor(cat){
+  return DATA.filter(d => d.category === cat && d.min != null)
+    .sort((a,b) => (b[metric]||0) - (a[metric]||0));
+}
+function buildChartData(cat){
+  const rows = chartRowsFor(cat);
+  return {
+    labels: rows.map(r=>nameLine(r.brand)),
+    datasets: [
+      { label:'최저~최고가 범위', data: rows.map(r=>[r.min, r.max]), backgroundColor: rows.map(r=>colorFor(r.brand)+'55'), borderColor: rows.map(r=>colorFor(r.brand)), borderWidth:1, borderSkipped:false },
+    ],
+    _rows: rows
+  };
+}
+function chartHeightFor(cat){
+  const n = chartRowsFor(cat).length;
+  return Math.max(340, n * 34 + 40);
+}
+let chartData = buildChartData(currentChartCat);
+document.querySelector('.chart-wrap').style.height = chartHeightFor(currentChartCat) + 'px';
+let chart = new Chart(ctx, {
+  type: 'bar',
+  data: { labels: chartData.labels, datasets: chartData.datasets },
+  options: {
+    indexAxis: 'y',
+    responsive: true, maintainAspectRatio: false,
+    layout: { padding: { right: 12 } },
+    plugins: {
+      legend: { display:false },
+      tooltip: { callbacks: {
+        label: (c) => {
+          const r = chartData._rows[c.dataIndex];
+          return `${nameLine(r.brand)}: ${fmt(r.min)} ~ ${fmt(r.max)} (평균 ${fmt(r.avg)})`;
+        }
+      }}
+    },
+    scales: {
+      x: { ticks: { color:'#333', font:{size:12}, callback: v => Math.round(v/10000).toLocaleString('ko-KR')+'만' }, grid:{color:'#eee'} },
+      y: { grid:{display:false}, ticks:{ color:'#1f2328', font:{size:12.5, weight:600} } }
+    }
+  }
+});
+function refreshChart(){
+  chartData = buildChartData(currentChartCat);
+  chart.data.labels = chartData.labels;
+  chart.data.datasets = chartData.datasets;
+  document.querySelector('.chart-wrap').style.height = chartHeightFor(currentChartCat) + 'px';
+  chart.resize();
+  chart.update();
+}
+document.getElementById('chartToggle').innerHTML = `
+  <select id="catSelectChart" class="btn" style="min-width:180px">
+    ${categories.map(c=>`<option value="${c}" ${c===currentChartCat?'selected':''}>${c}</option>`).join('')}
+  </select>
+  <span style="font-size:12px;color:#999;margin-left:6px">막대 = 최저가~최고가 범위, 정렬 기준: 평균가 높은 순</span>
+`;
+document.getElementById('catSelectChart').addEventListener('change', (e)=>{
+  currentChartCat = e.target.value;
+  refreshChart();
+});
+
+// ---------------------------------------------------------------------
+// 브랜드별 상세 보기 (사이드바 검색 + 목록 + 상세 패널)
+// ---------------------------------------------------------------------
+const ALL_KEY = '전체 보기';
+
+function renderBrandList(filterText){
+  const listEl = document.getElementById('brandList');
+  const f = (filterText||'').trim().toLowerCase();
+  const filtered = brands.filter(b=>b.toLowerCase().includes(f) || enName(b).toLowerCase().includes(f));
+  const allRow = `<div class="brandview-item all-item ${selectedBrand===ALL_KEY?'active':''}" data-b="${ALL_KEY}">${ALL_KEY}</div>`;
+  const rows = filtered.length
+    ? filtered.map(b=>{
+        const cls = ['brandview-item'];
+        if (selectedBrand===b) cls.push('active');
+        if (hasNoData(b)) cls.push('no-data');
+        return `<div class="${cls.join(' ')}" data-b="${b}">${nameStack(b)}${hasNoData(b)?'<div style=\"font-size:10.5px;\">데이터 없음</div>':''}</div>`;
+      }).join('')
+    : '<div class="brandview-empty">검색 결과가 없습니다.</div>';
+  listEl.innerHTML = allRow + rows;
+  listEl.querySelectorAll('.brandview-item[data-b]').forEach(item=>{
+    item.addEventListener('click', ()=>{
+      selectedBrand = item.dataset.b;
+      renderBrandList(document.getElementById('brandSearch').value);
+      renderBrandMain();
+      renderPositioningMap();
+      refreshChart();
+    });
+  });
+}
+
+let detailTab = 'price';
+
+function renderBrandMain(){
+  const mainEl = document.getElementById('brandMain');
+
+  mainEl.innerHTML = `
+    <div class="detailtabs">
+      <div class="detailtab ${detailTab==='price'?'active':''}" data-tab="price">가격 데이터</div>
+      <div class="detailtab ${detailTab==='link'?'active':''}" data-tab="link">사이트 링크</div>
+    </div>
+    <div id="brandMainBody"></div>
+  `;
+  mainEl.querySelectorAll('.detailtab').forEach(tab=>{
+    tab.addEventListener('click', ()=>{
+      if (detailTab === tab.dataset.tab) return;
+      detailTab = tab.dataset.tab;
+      renderBrandMain();
+    });
+  });
+
+  const bodyEl = document.getElementById('brandMainBody');
+
+  if (detailTab === 'link') {
+    renderSiteLinks(bodyEl);
+    return;
+  }
+
+  if (selectedBrand === ALL_KEY) {
+    bodyEl.innerHTML = `
+      <div class="controls" style="margin-bottom:12px;">
+        <select id="allCatSelect" class="btn" style="min-width:160px">
+          ${['전체', ...categories].map(c=>`<option value="${c}">${c}</option>`).join('')}
+        </select>
+      </div>
+      <div id="gridTable"></div>
+    `;
+    let currentCat = '전체';
+    function renderGrid(){
+      const rows = DATA.filter(d => currentCat==='전체' || d.category===currentCat)
+        .map(d => [d.category, nameLine(d.brand), d.count ?? '-', fmt(d.min), fmt(d.max), fmt(d.avg), d.typical, d.note]);
+      new gridjs.Grid({
+        columns: ['복종','브랜드','상품수','최저가','최고가','평균가','대표 가격대','비고'],
+        data: rows,
+        sort: true,
+        search: true,
+        pagination: { limit: 15 },
+        style: { table: { fontSize:'13px' } }
+      }).render(document.getElementById('gridTable'));
+    }
+    document.getElementById('allCatSelect').addEventListener('change', (e)=>{ currentCat = e.target.value; renderGrid(); });
+    renderGrid();
+    return;
+  }
+
+  const rows = DATA.filter(d => d.brand === selectedBrand);
+  const valid = rows.filter(d=>d.avg!=null);
+  const min = valid.length ? Math.min(...valid.map(d=>d.min)) : null;
+  const max = valid.length ? Math.max(...valid.map(d=>d.max)) : null;
+  const avg = valid.length ? Math.round(valid.reduce((s,d)=>s+d.avg,0)/valid.length) : null;
+  const style = BRAND_STYLE[selectedBrand];
+
+  bodyEl.innerHTML = `
+    <div style="display:flex; align-items:baseline; gap:10px; margin-bottom:14px;">
+      <span style="font-size:16px; font-weight:700; color:${colorFor(selectedBrand)}">${nameLine(selectedBrand)}</span>
+      <span style="font-size:12px; color:#999;">${rows.length}개 복종 조사됨${style!=null?` · 스타일점수 ${style}(LOVELY 0 ~ HIP 100)`:''}</span>
+    </div>
+    <div class="brandview-cards">
+      <div class="card"><div class="label">조사 복종 수</div><div class="value">${rows.length}개</div></div>
+      <div class="card"><div class="label">최저가</div><div class="value">${fmt(min)}</div></div>
+      <div class="card"><div class="label">최고가</div><div class="value">${fmt(max)}</div></div>
+      <div class="card"><div class="label">평균가</div><div class="value">${fmt(avg)}</div></div>
+    </div>
+    <div class="brand-table-wrap">
+    <table class="brand-table">
+      <thead><tr><th>복종</th><th>상품수</th><th>최저가</th><th>최고가</th><th>평균가</th><th>대표 가격대</th><th>비고</th></tr></thead>
+      <tbody>
+        ${rows.map(d=>`<tr>
+          <td>${d.category}</td>
+          <td>${d.count ?? '-'}</td>
+          <td>${fmt(d.min)}</td>
+          <td>${fmt(d.max)}</td>
+          <td>${fmt(d.avg)}</td>
+          <td>${d.typical}</td>
+          <td style="color:#888">${d.note||''}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+    </div>
+  `;
+}
+
+function renderSiteLinks(container){
+  if (selectedBrand === ALL_KEY) {
+    const rows = brands.map(b=>{
+      const url = BRAND_URL[b];
+      const linkHtml = url
+        ? `<a href="${url}" target="_blank" rel="noopener" class="sitelink-go">${url.replace(/^https?:\/\//,'')} ↗</a>`
+        : '<span class="sitelink-none">링크 없음</span>';
+      return `<div class="sitelink-row"><div>${nameStack(b)}</div>${linkHtml}</div>`;
+    }).join('');
+    container.innerHTML = `<div class="sitelink-list">${rows}</div>`;
+    return;
+  }
+  const url = BRAND_URL[selectedBrand];
+  container.innerHTML = `
+    <div class="sitelink-card">
+      <div>
+        <div style="font-size:15px; font-weight:700;">${nameLine(selectedBrand)}</div>
+        ${url
+          ? `<div style="font-size:12.5px; color:#185FA5; margin-top:4px;">${url.replace(/^https?:\/\//,'')}</div>`
+          : '<div style="font-size:12.5px; color:#999; margin-top:4px;">등록된 링크가 없습니다.</div>'}
+      </div>
+      ${url ? `<a href="${url}" target="_blank" rel="noopener" class="sitelink-btn">사이트 바로가기 ↗</a>` : ''}
+    </div>
+  `;
+}
+
+document.getElementById('brandSearch').addEventListener('input', (e)=>renderBrandList(e.target.value));
+renderBrandList('');
+renderBrandMain();
+
+// insights
+document.getElementById('insightList').innerHTML = INSIGHTS.map(i=>`<li>${i}</li>`).join('');
+
+} // ------- boot() 끝 -------
+
+// ---------------------------------------------------------------------
+// 클라우드(Firebase) 연동: 페이지를 열면 클라우드의 최신 데이터를 불러온 뒤
+// boot()을 실행합니다. 클라우드에 아직 게시된 데이터가 없거나 연결에 실패하면
+// 이 파일에 내장된 기본값으로 boot()을 실행합니다.
+// 데이터 갱신은 파일을 다시 올릴 필요 없이, 아래 "데이터 게시(관리자용)"
+// 아코디언에 새 데이터 JSON을 붙여넣고 "게시"를 누르면 이 링크를 가진
+// 모든 사람에게 새로고침만으로 반영됩니다.
+// ---------------------------------------------------------------------
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyA3e098rGxc0flnfGJlkjczs39aWVijIvc",
+  authDomain: "fashion-brand-research.firebaseapp.com",
+  databaseURL: "https://fashion-brand-research-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "fashion-brand-research",
+  storageBucket: "fashion-brand-research.firebasestorage.app",
+  messagingSenderId: "958892800982",
+  appId: "1:958892800982:web:ba4f1af3e8d3b7d4608277"
+};
+
+var FB_DB = null;
+function fbShowPublishInfo(at){
+  const el = document.getElementById('fbPublishInfo');
+  if (el && at) { try { el.textContent = '☁ 클라우드 최신 게시: ' + new Date(at).toLocaleString('ko-KR'); } catch(e){} }
+}
+
+(function initFirebaseAndBoot(){
+  let booted = false;
+  function bootOnce(){ if (booted) return; booted = true; boot(); }
+  const fallbackTimer = setTimeout(bootOnce, 4000);
+
+  try {
+    if (typeof firebase === 'undefined') { clearTimeout(fallbackTimer); bootOnce(); return; }
+    firebase.initializeApp(FIREBASE_CONFIG);
+    FB_DB = firebase.database();
+    FB_DB.ref('state/json').once('value').then(function(snap){
+      const raw = snap.val();
+      if (raw) {
+        try {
+          const cloud = JSON.parse(raw);
+          if (cloud.DATA) DATA = cloud.DATA;
+          if (cloud.BRAND_STYLE) BRAND_STYLE = cloud.BRAND_STYLE;
+          if (cloud.BRAND_EN) BRAND_EN = cloud.BRAND_EN;
+          if (cloud.BRAND_URL) BRAND_URL = cloud.BRAND_URL;
+          if (cloud.INSIGHTS) INSIGHTS = cloud.INSIGHTS;
+        } catch(e){ console.warn('cloud data parse fail', e); }
+      }
+      FB_DB.ref('state/at').once('value').then(function(a){ fbShowPublishInfo(a.val()); }).catch(function(){});
+      clearTimeout(fallbackTimer);
+      bootOnce();
+    }).catch(function(e){
+      console.warn('cloud load fail', e);
+      clearTimeout(fallbackTimer);
+      bootOnce();
+    });
+  } catch(e) {
+    console.warn('firebase init fail', e);
+    clearTimeout(fallbackTimer);
+    bootOnce();
+  }
+})();
+
+// ---------------------------------------------------------------------
+// 데이터 게시(관리자용): 새로 조사된 브랜드 데이터를 JSON으로 붙여넣고
+// "게시"를 누르면 클라우드에 저장되어, 이 링크를 가진 모두에게 반영됩니다.
+// ---------------------------------------------------------------------
+(function(){
+  const pToggle = document.getElementById('publishToggle');
+  const pBody = document.getElementById('publishBody');
+  const pChevron = document.getElementById('publishChevron');
+  let pOpen = false;
+  pToggle.addEventListener('click', function(){
+    pOpen = !pOpen;
+    pBody.style.display = pOpen ? 'block' : 'none';
+    pChevron.textContent = pOpen ? '▴' : '▾';
+  });
+})();
+
+document.getElementById('publishBtn').addEventListener('click', function(){
+  const raw = document.getElementById('publishJsonInput').value.trim();
+  const statusEl = document.getElementById('publishStatus');
+  if (!raw) { statusEl.textContent = '붙여넣을 JSON이 없습니다.'; statusEl.style.color = '#A32D2D'; return; }
+  let payload;
+  try { payload = JSON.parse(raw); }
+  catch(e){ statusEl.textContent = 'JSON 형식이 올바르지 않습니다: ' + e.message; statusEl.style.color = '#A32D2D'; return; }
+  if (!FB_DB) { statusEl.textContent = '클라우드 연결이 안 되어 있습니다.'; statusEl.style.color = '#A32D2D'; return; }
+  const btn = document.getElementById('publishBtn');
+  const orig = btn.textContent;
+  btn.disabled = true; btn.textContent = '게시 중...';
+  FB_DB.ref('state').set({ at: new Date().toISOString(), json: JSON.stringify(payload) }).then(function(){
+    btn.disabled = false; btn.textContent = orig;
+    statusEl.style.color = '#3B6D11';
+    statusEl.textContent = '게시 완료! 이 링크를 가진 모든 사람이 새로고침하면 최신 데이터를 봅니다.';
+    fbShowPublishInfo(new Date().toISOString());
+  }).catch(function(e){
+    btn.disabled = false; btn.textContent = orig;
+    statusEl.style.color = '#A32D2D';
+    statusEl.textContent = '게시 실패: (' + e.message + ')';
+  });
+});
+</script>
+
+</body>
+</html>
